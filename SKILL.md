@@ -40,7 +40,9 @@ A browser profile can retain cookies across Chromium restarts, but Tesco may inv
 
 For Snap Chromium, use a writable persistent profile under Chromium's private home, for example:
 
-`/home/matt/snap/chromium/common/tesco-chromium`
+`$CHROMIUM_PROFILE_DIR/tesco-chromium`
+
+Keep `CHROMIUM_PROFILE_DIR` local to the deployment; never commit the actual profile path, cookies, or browser state.
 
 Set the profile directory to mode `700`. Before migrating a profile:
 
