@@ -14,6 +14,14 @@ metadata:
 
 Use for an already-authenticated graphical Tesco Chromium session when inspecting orders, copying or editing one basket, booking one delivery slot, traversing checkout, or preparing an order for user approval.
 
+## Reusable policy helper
+
+Use the public API in `tesco_amendment.py` for amendment policy and the
+[adapter contract](references/policy-helper.md) for integration. It centralizes
+states and label aliases, binds quantities to a saved baseline, and journals
+submission intent before final input. The tests are offline fixtures, not proof
+of live-site compatibility. No browser adapter is included.
+
 ## Core safety boundary
 
 1. Maintain exactly one active Tesco grocery order. Before every consequential action, inspect upcoming orders and reserved slots.
@@ -23,7 +31,7 @@ Use for an already-authenticated graphical Tesco Chromium session when inspectin
 5. Do not enter credentials, new payment details, MFA codes, or security codes. For an initial order, stop at the saved-card payment screen after **Continue to payment**. For an amendment, the final boundary is **Order summary → Confirm order**.
 6. At either final boundary, produce a fresh summary: total, item quantities, delivery location, date/time, delivery charge, offers/substitutions, and uncertainty. For an existing confirmed order, proceed through Tesco's **Confirm order** without asking for another confirmation; the user's amendment request is authorization to complete it. Ask for explicit confirmation only when selecting or setting up a new delivery slot.
 7. A new-slot confirmation is single-use and must be bound to the current order, slot, basket hash, requested action, and visible cutoff. Re-inspect before execution.
-8. Never retry a payment submission blindly. If the page remains unchanged after a click, verify the URL/title/order-confirmation state and stop.
+8. Journal submission intent durably before the final click. Never retry final submission, including after a crash or lost response. Reconcile the same order, slot and complete expected basket from visible success evidence. A URL or title alone is insufficient; unresolved outcomes remain unknown.
 
 ## Live browser architecture
 
@@ -94,8 +102,8 @@ The initial-order final boundary is **Continue to payment → saved-card payment
 
 1. Open **My orders**, inspect upcoming orders, select the single target order, and click **Make changes**. Verify the authenticated groceries landing page is in change/amend mode and bound to that order.
 2. Add, remove, or change quantities only inside that order-bound flow. Re-inspect the basket and verify exactly one active order and the same reserved slot.
-3. Click the live basket checkout control, which may be labelled **Check out to confirm changes** or **Check out groceries**; verify its route includes `isInAmend=true`.
-4. Traverse **Offers → Suggestions → Order summary**.
+3. Click the live basket checkout control, which may be labelled **Checkout to confirm changes**, **Check out to confirm changes** or **Check out groceries**. Require visible order-bound amendment evidence; `isInAmend=true` is supporting evidence, not a substitute.
+4. Traverse the rendered checkout stages to **Order summary**. Offers and Suggestions are optional. Use bounded visible-state waits, not a fixed URL sequence.
 5. At Order summary, capture a fresh approval summary. For an existing confirmed order, the user's amendment request authorizes clicking **Confirm order**; do not ask again. Ask for explicit confirmation only before selecting or setting up a new delivery slot.
 6. After authorization, click **Confirm order** once and complete the amendment workflow; do not stop with changes merely staged in the basket. Verify the resulting URL, visible confirmation, order identity, and that every requested item/change appears under the confirmed order. In the verified flow this navigated directly to `confirmation?isAmendedOrder=true`, without a separate `payment.tesco.com` page. Do not assume that behavior.
 7. Report an amendment as complete only after the confirmed-order page verifies it. If confirmation is blocked, report clearly that the change is still pending and identify the exact next action; never present a staged basket as an updated order.
@@ -106,7 +114,10 @@ For product interpretation, **Brewdog Punk IPA 4X330ml** is one four-pack. If th
 
 - After every basket mutation, re-inspect the same order ID and slot identity; stop on slot drift.
 - Clubcard voucher discovery is read-only and may classify visible vouchers as available, already applied/auto-applied, redeemable/request-required, unavailable, or expired. Never redeem, request, or apply a voucher automatically. Present the exact voucher, action, saving, and current order/slot context first; require a fresh explicit confirmation for that specific voucher action, then verify the post-action voucher state and order.
-- Treat login pages as an authentication prerequisite, not as a reason to guess credentials. When Tesco redirects to its password page, first inspect whether the browser's saved-password autofill has populated the password field. Never read, print, copy, or type the password. If the field is populated and the user has authorized reauthentication, click the visible **Sign in** control once, then verify that Tesco returns to an authenticated page. If the field is empty, hand over via noVNC and wait for the user to select autofill or authenticate manually.
-- If a click does not navigate, inspect the control's accessible name, URL, disabled state, and surrounding page before retrying. Prefer one real browser-input retry only after checking that no order confirmation occurred.
+- A login page means `AUTH_REQUIRED`. Stop and hand over to the user. The helper never inspects autofill, reads or types credentials, or submits authentication forms.
+- If an input does not visibly take effect, inspect the current state before further input. A failed search Enter may use one checked form-submission fallback. Never apply that fallback rule to quantity mutations or final submission. Reconcile lost responses from the expected quantities or confirmation evidence instead.
 - If direct navigation to checkout redirects to the basket, inspect and click the live semantic checkout anchor/control. Resolve basket attention filters such as **Show items** or **Show full basket**, then re-inspect before retrying.
-- Never report an order as placed without a confirmation page or order number.
+- Only an exact **Cancel changes?** dialog with **No** and **Yes, cancel** controls may be automatically dismissed with **No**, and only before submission. Unknown dialogs stop the flow.
+- Record whether a requested quantity means **add** or **set** before input. Compare the complete expected basket, including unchanged items, after each mutation and at confirmation.
+- If a target disappears, rediscover read-only and accept only a unique target in the same browser with the same visible order and slot. Never select a tab from its trolley URL alone.
+- Never report an amendment complete from a confirmation URL or order number alone. Require visible success for the same order, slot and complete expected basket.

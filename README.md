@@ -1,8 +1,8 @@
-# Tesco shopping automation skill
+# Tesco shopping automation
 
-This standalone repository contains the Hermes skill instructions for private Tesco grocery
-basket inspection, delivery-slot discovery, confirmed-order amendments, and
-checkout verification.
+This repository contains the Hermes skill instructions and a small Python policy
+helper for order-bound amendments. Browser interaction stays behind an abstract
+adapter. The included tests use synthetic fixtures only.
 
 The skill is the **operational playbook**. It is not, by itself, a Tesco API
 client, browser driver, credential store, or complete server deployment. A
@@ -13,8 +13,29 @@ below are provisioned on the target machine.
 
 - `SKILL.md` — safety boundaries, browser procedure, approval rules, and
   verification requirements.
-- `references/` — checkout labels, rendering waits, the current order-bound
-  amendment entry flow, and confirmed-order amendment lessons.
+- `references/` describes checkout, amendment entry and recovery rules.
+- `tesco_amendment.py` provides typed observations, quantity policy, bounded
+  orchestration and a durable, sanitized submission journal.
+- `tests/` verifies the policy using scripted browser fixtures.
+
+## Offline helper and tests
+
+Python 3.10+ and its standard library are sufficient. No browser, network,
+credentials or package installation is needed to run the suite:
+
+```bash
+python3 -m unittest discover -s tests -v
+python3 -m compileall -q tesco_amendment.py tests
+git diff --check
+```
+
+The public API is `discover`, `Operation`, `Orchestrator`, `BrowserAdapter` and
+`Journal`. Start with [the helper contract and integration example](references/policy-helper.md).
+It explains how adapters must collect visible evidence, retain the original
+context across restarts, and preserve the final-click fence. The library does
+not include a live adapter and does not implement initial-order checkout,
+slot booking, authentication, vouchers or payment input. The deployment
+instructions below concern live skill use, not the offline tests.
 
 This repository intentionally contains no Tesco credentials, cookies, saved
 passwords, payment data, MFA codes, order data, `.env` files, or browser
@@ -98,9 +119,10 @@ Chromium profile        -> local authenticated session; never commit or copy
 Tesco                  -> live basket, order, slot, and checkout state
 ```
 
-The browser helper and host service configuration are deployment components,
-not substitutes for the skill. If they are maintained in another repository,
-provision and version that repository separately. Do not place helper secrets,
+The policy helper lives in this repository. Its browser adapter and host service
+configuration remain deployment components, not substitutes for the skill. If
+they are maintained in another repository, provision and version that repository
+separately. Do not place helper secrets,
 Tesco session data, or local machine paths in this skill repository.
 
 ## Safety and approval model
