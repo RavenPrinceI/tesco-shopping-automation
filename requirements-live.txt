@@ -1,2 +1,0 @@
-# Live use only. Offline tests and --help do not require this package.
-websockets>=15,<16

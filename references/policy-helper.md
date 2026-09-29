@@ -47,9 +47,8 @@ def amend(adapter, operations, private_journal_path, save_context, *, authorized
         journal.close()
 ```
 
-For the included CLI, `tesco_cdp.RunStore` supplies private persisted context,
-binding and a whole-run execution fence. See [live CDP](live-cdp.md). Other
-integrations must implement `save_context`. Keep the context and opaque keys in private storage
+`save_context` is an integration responsibility, not an included persistence
+function. Keep the context and adapter's opaque-key mapping in private storage
 outside this repository. Do not print them. Do not generate a new run identity
 or rediscover a new baseline to recover an uncertain attempt. If either the
 original context or journal is lost, stop for manual reconciliation.
@@ -112,7 +111,6 @@ Action semantics:
 | `SEARCH_SUBMIT` | Submit the still-visible populated search form once through normal browser input. No second Enter attempt. |
 | `SET_QUANTITY` | Set the verified product's absolute quantity once. Do not translate a desired total into that many Add clicks. If unsupported, refuse. |
 | `CHECKOUT` | Click the currently rendered supported checkout label once. |
-| `OPEN_TROLLEY` | Open the trolley from the order-bound landing/search view, then verify the complete expected basket. |
 | `CONTINUE` | Click the supported checkout continuation once. |
 | `KEEP_CHANGES` | Choose `No` only in the classified cancellation dialog. |
 | `CONFIRM` | Click the final summary's `Confirm order` once. Never retry internally. |
@@ -129,9 +127,7 @@ visible state without repeating the input.
 Normal progress is `ORDER_DISCOVERY`, `AMENDING`, `PRODUCT_SELECTION`,
 `BASKET_VERIFIED`, `CHECKOUT`, `SUMMARY_VERIFIED`, `SUBMISSION_PENDING`,
 `CONFIRMED`. Product selection is skipped for already-satisfied operations.
-Landing and product views may first open the trolley. Checkout, Offers and
-Suggestions may be absent. Both `Continue checkout` and `Continue to checkout`
-are continuation aliases. A delayed view or control is polled within
+Offers and Suggestions may be absent. A delayed view or control is polled within
 a fixed bound; intermediate stages are each advanced at most once per run.
 
 `AUTH_REQUIRED`, `SLOT_DRIFT`, `AMBIGUOUS_TARGET`, `UNEXPECTED_DIALOG`, and
@@ -169,7 +165,7 @@ From the repository root:
 
 ```bash
 python3 -m unittest discover -s tests -v
-python3 -m compileall -q tesco_amendment.py tesco_live.py tesco_cdp.py tests
+python3 -m compileall -q tesco_amendment.py tests
 git diff --check
 ```
 
@@ -177,7 +173,6 @@ No installation, pytest, network, cookies, credentials, or browser is needed.
 The fake adapter in `tests/test_orchestration.py` supplies typed fixtures and
 records actions so tests can assert absence of duplicate input.
 
-The repository now includes a conservative visible-DOM adapter, private context
-storage and bounded CDP transport. Production selector mapping, private user
-summary delivery and separately approved live acceptance testing remain
-deployment work. Read the [live adapter limitations](live-cdp.md) before use.
+Remaining deployment work is a reviewed visible-browser adapter, private context
+storage and user-summary channel, host-specific timeouts, and separate approved
+live acceptance testing. This repository does not supply those components.

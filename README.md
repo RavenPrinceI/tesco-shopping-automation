@@ -1,9 +1,8 @@
 # Tesco shopping automation
 
 This repository contains the Hermes skill instructions and a small Python policy
-helper for order-bound amendments, plus a guarded CDP adapter and CLI. The
-included tests use synthetic fixtures only. Live-site compatibility is not yet
-verified; the adapter requires a reviewed deployment-specific visible-DOM map.
+helper for order-bound amendments. Browser interaction stays behind an abstract
+adapter. The included tests use synthetic fixtures only.
 
 The skill is the **operational playbook**. It is not, by itself, a Tesco API
 client, browser driver, credential store, or complete server deployment. A
@@ -17,9 +16,7 @@ below are provisioned on the target machine.
 - `references/` describes checkout, amendment entry and recovery rules.
 - `tesco_amendment.py` provides typed observations, quantity policy, bounded
   orchestration and a durable, sanitized submission journal.
-- `tesco_live.py` is the read-only-by-default CLI and visible-DOM adapter.
-- `tesco_cdp.py` provides bounded loopback CDP and private persisted run binding.
-- `tests/` verifies policy, adapter, transport guards and recovery with offline fixtures.
+- `tests/` verifies the policy using scripted browser fixtures.
 
 ## Offline helper and tests
 
@@ -28,37 +25,17 @@ credentials or package installation is needed to run the suite:
 
 ```bash
 python3 -m unittest discover -s tests -v
-python3 -m compileall -q tesco_amendment.py tesco_live.py tesco_cdp.py tests
+python3 -m compileall -q tesco_amendment.py tests
 git diff --check
 ```
 
 The public API is `discover`, `Operation`, `Orchestrator`, `BrowserAdapter` and
 `Journal`. Start with [the helper contract and integration example](references/policy-helper.md).
 It explains how adapters must collect visible evidence, retain the original
-context across restarts, and preserve the final-click fence. The separate live
-adapter does not implement initial-order checkout, slot booking, authentication,
-vouchers or payment input. Its conservative evidence requirements may refuse
-the current site layout. Do not weaken them to get a run through checkout.
-
-## Live entry point
-
-Use the repository CLI instead of temporary mutation scripts. Read
-[the exact invocation, site-map contract and limitations](references/live-cdp.md)
-before use. The synthetic map under `tests/fixtures/` is not a production map.
-
-```bash
-python3 tesco_live.py --target "$TESCO_TARGET" \
-  --site-map "$TESCO_SITE_MAP" --plan "$TESCO_PLAN" \
-  --state-dir "$TESCO_RUN_DIR" --dry-run
-```
-
-The endpoint defaults to `http://127.0.0.1:9222`. Run state and runtime files stay
-outside Git. A saved read-only baseline is mandatory. Only a later explicit
-`--execute` with the same arguments enables one mutation attempt, including
-final confirmation. `--reconcile` is read-only after an uncertain final click.
-Never delete the original state or use a new run ID to retry an uncertain input.
-Live transport needs `websockets`; the default tests need only Python, with one
-optional Node DOM-double test. No live execution is part of the test suite.
+context across restarts, and preserve the final-click fence. The library does
+not include a live adapter and does not implement initial-order checkout,
+slot booking, authentication, vouchers or payment input. The deployment
+instructions below concern live skill use, not the offline tests.
 
 This repository intentionally contains no Tesco credentials, cookies, saved
 passwords, payment data, MFA codes, order data, `.env` files, or browser
@@ -142,10 +119,11 @@ Chromium profile        -> local authenticated session; never commit or copy
 Tesco                  -> live basket, order, slot, and checkout state
 ```
 
-The policy helper, live adapter and CLI live in this repository. The reviewed
-site map, private run state and host service configuration remain deployment
-components. Do not place helper secrets, Tesco session data, production page
-evidence or local machine paths in this repository.
+The policy helper lives in this repository. Its browser adapter and host service
+configuration remain deployment components, not substitutes for the skill. If
+they are maintained in another repository, provision and version that repository
+separately. Do not place helper secrets,
+Tesco session data, or local machine paths in this skill repository.
 
 ## Safety and approval model
 
