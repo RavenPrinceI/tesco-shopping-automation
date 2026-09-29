@@ -16,11 +16,30 @@ Use for an already-authenticated graphical Tesco Chromium session when inspectin
 
 ## Reusable policy helper
 
-Use the public API in `tesco_amendment.py` for amendment policy and the
-[adapter contract](references/policy-helper.md) for integration. It centralizes
-states and label aliases, binds quantities to a saved baseline, and journals
-submission intent before final input. The tests are offline fixtures, not proof
-of live-site compatibility. No browser adapter is included.
+Use `tesco_live.py` around `tesco_amendment.py`, not one-off temporary mutation
+scripts. Follow the [live entry point and evidence contract](references/live-cdp.md).
+The CLI defaults to read-only; it requires a saved baseline before `--execute`.
+The same private state directory binds the browser, exact target, map, plan,
+original basket, expected basket and durable input fences across restarts.
+Never reset that directory to retry uncertain input.
+
+```bash
+python3 tesco_live.py --target "$TESCO_TARGET" \
+  --site-map "$TESCO_SITE_MAP" --plan "$TESCO_PLAN" \
+  --state-dir "$TESCO_RUN_DIR" --dry-run
+```
+
+After successful inspection and under the user's current amendment request,
+replace `--dry-run` with `--execute` for one attempt. Use `--reconcile` only for
+read-only verification of an uncertain final submission. No initial-order,
+slot, authentication, voucher or payment actions are supported. The adapter
+also refuses search/text entry and quantity jumps larger than one unit.
+
+The tests are offline fixtures, not proof of current Tesco compatibility. A
+reviewed production DOM map is still required. If the page cannot expose the
+complete active-order list, basket and cutoff at every stage, stop and extend
+the tested adapter. Do not synthesize evidence or bypass it with a temporary
+script. Keep runtime page data and configuration private and outside Git.
 
 ## Core safety boundary
 
@@ -102,8 +121,8 @@ The initial-order final boundary is **Continue to payment → saved-card payment
 
 1. Open **My orders**, inspect upcoming orders, select the single target order, and click **Make changes**. Verify the authenticated groceries landing page is in change/amend mode and bound to that order.
 2. Add, remove, or change quantities only inside that order-bound flow. Re-inspect the basket and verify exactly one active order and the same reserved slot.
-3. Click the live basket checkout control, which may be labelled **Checkout to confirm changes**, **Check out to confirm changes** or **Check out groceries**. Require visible order-bound amendment evidence; `isInAmend=true` is supporting evidence, not a substitute.
-4. Traverse the rendered checkout stages to **Order summary**. Offers and Suggestions are optional. Use bounded visible-state waits, not a fixed URL sequence.
+3. From landing/search, open the trolley when its control is present. Resolve checkout only inside the order-bound basket region. Labels include **Checkout to confirm changes**, **Check out to confirm changes** and **Check out groceries**. If both ordinary and amendment-specific checkout are present, prefer the unique amendment-specific control within that region, never a first page-wide match. Require visible amendment evidence; `isInAmend=true` is supporting evidence only.
+4. Traverse **trolley → checkout → Offers → Suggestions → Order summary** as rendered. Intermediate stages may be absent. Support both **Continue checkout** and **Continue to checkout**. Use bounded visible-state waits, not a fixed URL sequence.
 5. At Order summary, capture a fresh approval summary. For an existing confirmed order, the user's amendment request authorizes clicking **Confirm order**; do not ask again. Ask for explicit confirmation only before selecting or setting up a new delivery slot.
 6. After authorization, click **Confirm order** once and complete the amendment workflow; do not stop with changes merely staged in the basket. Verify the resulting URL, visible confirmation, order identity, and that every requested item/change appears under the confirmed order. In the verified flow this navigated directly to `confirmation?isAmendedOrder=true`, without a separate `payment.tesco.com` page. Do not assume that behavior.
 7. Report an amendment as complete only after the confirmed-order page verifies it. If confirmation is blocked, report clearly that the change is still pending and identify the exact next action; never present a staged basket as an updated order.

@@ -1,0 +1,18 @@
+{
+  "note": "Synthetic reduced replay of the reported frozen-peas path. Not a captured account or complete real basket.",
+  "baseline": {"111111111": 2},
+  "operation": {"product": "222222222", "mode": "add", "quantity": 1},
+  "evidence": {
+    "authenticated": true,
+    "orders_complete": true,
+    "orders": [{"order": "order-fixture", "slot": "slot-fixture", "cutoff": "2099-01-01T12:00:00+00:00"}],
+    "order": "order-fixture", "slot": "slot-fixture", "cutoff": "2099-01-01T12:00:00+00:00",
+    "view": "products", "making_changes": true,
+    "quantities": {"111111111": 2}, "basket_complete": true,
+    "summary_complete": false, "visible_success": false,
+    "products": [{"key": "222222222", "quantity": 0, "name": "Tesco Frozen Garden Peas 900g", "price": "£1.50", "controls": [{"label": "Add", "x": 100, "y": 100}]}],
+    "controls": [{"label": "View trolley", "scope": "order", "x": 200, "y": 100}],
+    "dialog": null
+  },
+  "stages": ["products", "basket", "checkout", "offers", "suggestions", "summary", "confirmation"]
+}

@@ -37,6 +37,8 @@ class View(str, Enum):
     ORDERS = 'orders'
     BASKET = 'basket'
     PRODUCTS = 'products'
+    LANDING = 'landing'
+    CHECKOUT = 'checkout'
     OFFERS = 'offers'
     SUGGESTIONS = 'suggestions'
     SUMMARY = 'summary'
@@ -180,7 +182,8 @@ def discover(snapshot: Snapshot, operations: tuple[Operation, ...], *, now: floa
 LABEL_ALIASES = {
     'checkout': frozenset({'Checkout to confirm changes', 'Check out to confirm changes',
                            'Check out groceries'}),
-    'continue': frozenset({'Continue to checkout'}),
+    'continue': frozenset({'Continue to checkout', 'Continue checkout'}),
+    'open_trolley': frozenset({'View trolley', 'Trolley'}),
     'search': frozenset({'Search'}),
     'confirm': frozenset({'Confirm order'}),
     'enter_amendment': frozenset({'Make changes'}),
@@ -206,6 +209,7 @@ class ActionKind(str, Enum):
     SEARCH_SUBMIT = 'search_submit'
     SET_QUANTITY = 'set_quantity'
     CHECKOUT = 'checkout'
+    OPEN_TROLLEY = 'open_trolley'
     CONFIRM = 'confirm'
 
 
@@ -387,13 +391,13 @@ class Orchestrator:
 
     def _checkout(self) -> Page:
         seen = set()
-        for _ in range(3):  # offers, suggestions, summary; both intermediate stages optional
+        for _ in range(4):  # checkout, offers, suggestions, summary
             page = self._wait(lambda p: p.view != View.LOADING and
-                              (p.view not in (View.OFFERS, View.SUGGESTIONS) or
+                              (p.view not in (View.CHECKOUT, View.OFFERS, View.SUGGESTIONS) or
                                bool(LABEL_ALIASES['continue'].intersection(p.controls))))
             if page.view == View.SUMMARY:
                 return self._wait(lambda p: p.view == View.SUMMARY and p.summary_complete)
-            if (page.view not in (View.OFFERS, View.SUGGESTIONS) or page.view in seen or
+            if (page.view not in (View.CHECKOUT, View.OFFERS, View.SUGGESTIONS) or page.view in seen or
                     not self._quantities_match(page)):
                 raise Halt(State.OUTCOME_UNKNOWN)
             seen.add(page.view)
@@ -409,7 +413,7 @@ class Orchestrator:
             expected_so_far[operation.product] = desired
             expected_so_far = {p: q for p, q in expected_so_far.items() if q}
             current = self._observe()
-            if current.view not in (View.BASKET, View.PRODUCTS):
+            if current.view not in (View.BASKET, View.PRODUCTS, View.LANDING):
                 raise Halt(State.OUTCOME_UNKNOWN)
             if current.basket_complete and dict(current.quantities) == expected_so_far:
                 continue
@@ -425,13 +429,13 @@ class Orchestrator:
                     current = self._observe()
                     # Only a still-present unchanged search form permits fallback.
                     if (not LABEL_ALIASES['search'].intersection(current.controls) or current.view not in
-                            (View.BASKET, View.PRODUCTS) or
+                            (View.BASKET, View.PRODUCTS, View.LANDING) or
                             dict(current.quantities) != before):
                         raise Halt(State.OUTCOME_UNKNOWN)
                     self.adapter.act(Action(ActionKind.SEARCH_SUBMIT, visible_label(current, 'search'), operation.product), current)
                     selected = self._wait(lambda p: operation.product in p.verified_products)
                 current = selected
-            if (current.view not in (View.BASKET, View.PRODUCTS) or
+            if (current.view not in (View.BASKET, View.PRODUCTS, View.LANDING) or
                     not current.basket_complete or dict(current.quantities) != before):
                 raise Halt(State.OUTCOME_UNKNOWN)
             if self.journal.claim_mutation(self.run_id, index):
@@ -461,8 +465,14 @@ class Orchestrator:
             if not self._quantities_match(page):
                 raise Halt(State.OUTCOME_UNKNOWN)
             self._state(State.BASKET_VERIFIED)
-            if page.view not in (View.BASKET, View.PRODUCTS):
+            if page.view not in (View.BASKET, View.PRODUCTS, View.LANDING):
                 raise Halt(State.OUTCOME_UNKNOWN)
+            if LABEL_ALIASES['open_trolley'].intersection(page.controls):
+                self.adapter.act(Action(ActionKind.OPEN_TROLLEY,
+                                        visible_label(page, 'open_trolley')), page)
+                page = self._wait(lambda p: p.view == View.BASKET)
+                if not self._quantities_match(page):
+                    raise Halt(State.OUTCOME_UNKNOWN)
             self.adapter.act(Action(ActionKind.CHECKOUT, visible_label(page, 'checkout')), page)
             self._state(State.CHECKOUT)
             page = self._checkout()

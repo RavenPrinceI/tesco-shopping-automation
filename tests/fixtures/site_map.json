@@ -1,0 +1,24 @@
+{
+  "authenticated": {"selector": ".authenticated", "text": "Signed in"},
+  "orders": {
+    "root": ".orders", "rows": ".order-row", "order": ".order-id",
+    "slot": ".slot", "cutoff": ".cutoff", "count": ".count",
+    "complete": {"selector": ".complete", "text": "All upcoming orders"}
+  },
+  "views": {
+    "products": {
+      "root": ".page", "heading": {"selector": "h1", "text": "Search results"},
+      "order": ".order-id", "slot": ".slot", "cutoff": ".cutoff",
+      "amendment": {"selector": ".amending", "text": "Making changes"},
+      "basket": {
+        "root": ".basket", "rows": ".line", "product": ".product", "quantity": ".quantity",
+        "count": ".count", "complete": {"selector": ".complete", "text": "All basket lines"}
+      }
+    }
+  },
+  "products": [{
+    "key": "222222222", "root": ".peas", "product": ".product",
+    "name": ".name", "name_text": "Tesco Frozen Garden Peas 900g",
+    "price": ".price", "price_text": "£1.50", "quantity": ".quantity"
+  }]
+}
