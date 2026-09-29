@@ -13,8 +13,8 @@ below are provisioned on the target machine.
 
 - `SKILL.md` — safety boundaries, browser procedure, approval rules, and
   verification requirements.
-- `references/` — checkout labels, rendering waits, and confirmed-order
-  amendment lessons.
+- `references/` — checkout labels, rendering waits, the current order-bound
+  amendment entry flow, and confirmed-order amendment lessons.
 
 This repository intentionally contains no Tesco credentials, cookies, saved
 passwords, payment data, MFA codes, order data, `.env` files, or browser
@@ -116,6 +116,8 @@ Tesco session data, or local machine paths in this skill repository.
   specific confirmation for one identified voucher action.
 - Treat a staged amendment basket as incomplete. Report success only after the
   final Tesco confirmation page verifies the requested item or change.
+- Ordinary basket edits outside **My orders → Make changes** are detached from
+  an existing order and must not be reported as amendments.
 - Delivery reservations can expire during checkout. Record the approximate
   reservation start time, honor Tesco's visible cutoff, and stop for slot
   re-selection rather than silently booking a replacement.

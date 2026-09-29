@@ -55,6 +55,19 @@ Set the profile directory to mode `700`. Before migrating a profile:
 
 If the source is missing, do not claim migration succeeded; launch a fresh persistent profile and ask the user to authenticate through noVNC.
 
+## Order-bound amendment entry
+
+Tesco's current site requires entering the order-bound change flow from **My orders**:
+
+1. Open **My orders**.
+2. Inspect upcoming orders and confirm exactly one active/upcoming order.
+3. Select that order and click **Make changes**.
+4. Verify the page visibly says **Making changes** and shows the target order's delivery date before editing.
+5. Only then add, remove, or change quantities.
+6. Re-inspect the order identity and reserved slot after each mutation.
+
+Edits made in the ordinary grocery basket while outside this change flow are **not attached to the existing order**. They are a separate normal basket and must not be reported as an order amendment. If the user intends to amend an existing order, discard or leave the detached basket alone and re-enter through **My orders → Make changes**.
+
 ## Slot and checkout lifecycle
 
 Delivery reservations are time-limited. Record the reservation start time when the slot is booked, warn the user before the roughly two-hour reservation window expires, and also honor Tesco's visible checkout cutoff. Treat a slot as live only after a fresh inspection. A slot can expire while working through checkout, and Tesco may redirect back to the basket with `InvalidSlot` / “Please book a new slot”. When this occurs:
@@ -79,9 +92,9 @@ The initial-order final boundary is **Continue to payment → saved-card payment
 
 ### Confirmed-order amendment
 
-1. From the confirmation page, choose **Change grocery order** and verify the authenticated groceries landing page is in change/amend mode.
-2. Add, remove, or change quantities as requested. Re-inspect the basket and verify exactly one active order.
-3. Click the live basket control labelled **Check out to confirm changes**; verify its route includes `isInAmend=true`.
+1. Open **My orders**, inspect upcoming orders, select the single target order, and click **Make changes**. Verify the authenticated groceries landing page is in change/amend mode and bound to that order.
+2. Add, remove, or change quantities only inside that order-bound flow. Re-inspect the basket and verify exactly one active order and the same reserved slot.
+3. Click the live basket checkout control, which may be labelled **Check out to confirm changes** or **Check out groceries**; verify its route includes `isInAmend=true`.
 4. Traverse **Offers → Suggestions → Order summary**.
 5. At Order summary, capture a fresh approval summary. For an existing confirmed order, the user's amendment request authorizes clicking **Confirm order**; do not ask again. Ask for explicit confirmation only before selecting or setting up a new delivery slot.
 6. After authorization, click **Confirm order** once and complete the amendment workflow; do not stop with changes merely staged in the basket. Verify the resulting URL, visible confirmation, order identity, and that every requested item/change appears under the confirmed order. In the verified flow this navigated directly to `confirmation?isAmendedOrder=true`, without a separate `payment.tesco.com` page. Do not assume that behavior.
