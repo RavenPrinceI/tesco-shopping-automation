@@ -1,6 +1,6 @@
 # Tesco shopping automation skill
 
-This directory contains the Hermes skill instructions for private Tesco grocery
+This standalone repository contains the Hermes skill instructions for private Tesco grocery
 basket inspection, delivery-slot discovery, confirmed-order amendments, and
 checkout verification.
 
@@ -19,6 +19,18 @@ below are provisioned on the target machine.
 This repository intentionally contains no Tesco credentials, cookies, saved
 passwords, payment data, MFA codes, order data, `.env` files, or browser
 profiles.
+
+## Installation
+
+Clone this repository into the active Hermes profile's skills directory:
+
+```bash
+git clone https://github.com/RavenPrinceI/tesco-shopping-automation.git "${HERMES_HOME}/skills/tesco-shopping-automation"
+```
+
+Set `HERMES_HOME` to the active profile directory before running the command.
+The repository root is the skill directory: `SKILL.md` and `references/` must
+stay together. Provision the runtime components below before using the skill.
 
 ## Runtime components required
 
